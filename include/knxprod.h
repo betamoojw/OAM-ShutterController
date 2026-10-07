@@ -17,17 +17,17 @@
 #define MAIN_FirmwareName "Jalousiensteuerung (Beta)"
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 50
-#define MAIN_ApplicationVersion 25
-#define MAIN_FirmwareRevision 1
+#define MAIN_ApplicationVersion 26
+#define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
-#define MAIN_ParameterSize 17810
-#define MAIN_MaxKoNumber 2115
+#define MAIN_ParameterSize 21617
+#define MAIN_MaxKoNumber 2147
 #define MAIN_OrderNumber "OpenKnx-MG-JAL"
 #define BASE_ModuleVersion 25
 #define UCT_ModuleVersion 5
-#define SHC_ModuleVersion 11
+#define SHC_ModuleVersion 12
 #define LOG_ModuleVersion 68
-#define FCB_ModuleVersion 10
+#define FCB_ModuleVersion 11
 // Parameter with single occurrence
 
 
@@ -212,6 +212,12 @@
 #define SHC_HasCloudsInput                      115      // 1 Bit, Bit 2
 #define     SHC_HasCloudsInputMask 0x04
 #define     SHC_HasCloudsInputShift 2
+#define SHC_HasDuskInput                        115      // 1 Bit, Bit 1
+#define     SHC_HasDuskInputMask 0x02
+#define     SHC_HasDuskInputShift 1
+#define SHC_HasHolidayInput                     115      // 1 Bit, Bit 0
+#define     SHC_HasHolidayInputMask 0x01
+#define     SHC_HasHolidayInputShift 0
 #define SHC_ShadingActivation                   116      // 8 Bits, Bit 7-0
 #define SHC_TempWatchdog                        117      // 4 Bits, Bit 7-4
 #define     SHC_TempWatchdogMask 0xF0
@@ -281,6 +287,10 @@
 #define ParamSHC_HasRainInput                        ((bool)(knx.paramByte(SHC_HasRainInput) & SHC_HasRainInputMask))
 // Wolkenbedeckung
 #define ParamSHC_HasCloudsInput                      ((bool)(knx.paramByte(SHC_HasCloudsInput) & SHC_HasCloudsInputMask))
+// Dämmerung
+#define ParamSHC_HasDuskInput                        ((bool)(knx.paramByte(SHC_HasDuskInput) & SHC_HasDuskInputMask))
+// Feiertag
+#define ParamSHC_HasHolidayInput                     ((bool)(knx.paramByte(SHC_HasHolidayInput) & SHC_HasHolidayInputMask))
 // Tägliche Aktivierung
 #define ParamSHC_ShadingActivation                   (knx.paramByte(SHC_ShadingActivation))
 // Ausfallsüberwachung
@@ -347,6 +357,8 @@
 #define SHC_KoBrightnessInput3 410
 #define SHC_KoBrightnessInput4 411
 #define SHC_KoBrightnessInput5 412
+#define SHC_KoDuskInput 413
+#define SHC_KoHolidayInput 414
 
 // Jalousiensteuerung: Beschattung täglich aktivieren
 #define KoSHC_ShadingControlDailyActivation       (knx.getGroupObject(SHC_KoShadingControlDailyActivation))
@@ -374,12 +386,16 @@
 #define KoSHC_BrightnessInput4                    (knx.getGroupObject(SHC_KoBrightnessInput4))
 // Jalousiensteuerung: Helligkeit 5
 #define KoSHC_BrightnessInput5                    (knx.getGroupObject(SHC_KoBrightnessInput5))
+// Jalousiensteuerung: Dämmerung
+#define KoSHC_DuskInput                           (knx.getGroupObject(SHC_KoDuskInput))
+// Jalousiensteuerung: Heute wie Sonntag
+#define KoSHC_HolidayInput                        (knx.getGroupObject(SHC_KoHolidayInput))
 
 #define SHC_ChannelCount 32
 
 // Parameter per channel
 #define SHC_ParamBlockOffset 145
-#define SHC_ParamBlockSize 281
+#define SHC_ParamBlockSize 400
 #define SHC_ParamCalcIndex(index) (index + SHC_ParamBlockOffset + _channelIndex * SHC_ParamBlockSize)
 
 #define SHC_CType                                0      // 8 Bits, Bit 7-0
@@ -1009,6 +1025,457 @@
 #define SHC_CScene16Hold                        277      // 1 Bit, Bit 0
 #define     SHC_CScene16HoldMask 0x01
 #define     SHC_CScene16HoldShift 0
+#define SHC_CNightLockBehavior                  281      // 1 Bit, Bit 7
+#define     SHC_CNightLockBehaviorMask 0x80
+#define     SHC_CNightLockBehaviorShift 7
+#define SHC_CNightShadingPrecedence             281      // 1 Bit, Bit 6
+#define     SHC_CNightShadingPrecedenceMask 0x40
+#define     SHC_CNightShadingPrecedenceShift 6
+#define SHC_CNightBrightnessSource              281      // 3 Bits, Bit 5-3
+#define     SHC_CNightBrightnessSourceMask 0x38
+#define     SHC_CNightBrightnessSourceShift 3
+#define SHC_CNightBrightnessSourceDusk          281      // 3 Bits, Bit 5-3
+#define     SHC_CNightBrightnessSourceDuskMask 0x38
+#define     SHC_CNightBrightnessSourceDuskShift 3
+#define SHC_CNightBrightnessSourceSensors       281      // 3 Bits, Bit 5-3
+#define     SHC_CNightBrightnessSourceSensorsMask 0x38
+#define     SHC_CNightBrightnessSourceSensorsShift 3
+#define SHC_CNightMigrated                      281      // 1 Bit, Bit 2
+#define     SHC_CNightMigratedMask 0x04
+#define     SHC_CNightMigratedShift 2
+#define SHC_CNightBrightnessDuration            282      // uint8_t
+#define SHC_CNightStage1Action                  283      // 2 Bits, Bit 7-6
+#define     SHC_CNightStage1ActionMask 0xC0
+#define     SHC_CNightStage1ActionShift 6
+#define SHC_CNightStage2Action                  283      // 2 Bits, Bit 5-4
+#define     SHC_CNightStage2ActionMask 0x30
+#define     SHC_CNightStage2ActionShift 4
+#define SHC_CNightStage3Action                  283      // 2 Bits, Bit 3-2
+#define     SHC_CNightStage3ActionMask 0x0C
+#define     SHC_CNightStage3ActionShift 2
+#define SHC_CNightStage4Action                  283      // 2 Bits, Bit 1-0
+#define     SHC_CNightStage4ActionMask 0x03
+#define     SHC_CNightStage4ActionShift 0
+#define SHC_CNightStage1Position                284      // 7 Bits, Bit 6-0
+#define     SHC_CNightStage1PositionMask 0x7F
+#define     SHC_CNightStage1PositionShift 0
+#define SHC_CNightStage1Slat                    285      // 7 Bits, Bit 6-0
+#define     SHC_CNightStage1SlatMask 0x7F
+#define     SHC_CNightStage1SlatShift 0
+#define SHC_CNightStage3Position                286      // 7 Bits, Bit 6-0
+#define     SHC_CNightStage3PositionMask 0x7F
+#define     SHC_CNightStage3PositionShift 0
+#define SHC_CNightStage3Slat                    287      // 7 Bits, Bit 6-0
+#define     SHC_CNightStage3SlatMask 0x7F
+#define     SHC_CNightStage3SlatShift 0
+#define SHC_CNightPoint1Mon                     288      // 1 Bit, Bit 7
+#define     SHC_CNightPoint1MonMask 0x80
+#define     SHC_CNightPoint1MonShift 7
+#define SHC_CNightPoint1Tue                     288      // 1 Bit, Bit 6
+#define     SHC_CNightPoint1TueMask 0x40
+#define     SHC_CNightPoint1TueShift 6
+#define SHC_CNightPoint1Wed                     288      // 1 Bit, Bit 5
+#define     SHC_CNightPoint1WedMask 0x20
+#define     SHC_CNightPoint1WedShift 5
+#define SHC_CNightPoint1Thu                     288      // 1 Bit, Bit 4
+#define     SHC_CNightPoint1ThuMask 0x10
+#define     SHC_CNightPoint1ThuShift 4
+#define SHC_CNightPoint1Fri                     288      // 1 Bit, Bit 3
+#define     SHC_CNightPoint1FriMask 0x08
+#define     SHC_CNightPoint1FriShift 3
+#define SHC_CNightPoint1Sat                     288      // 1 Bit, Bit 2
+#define     SHC_CNightPoint1SatMask 0x04
+#define     SHC_CNightPoint1SatShift 2
+#define SHC_CNightPoint1Sun                     288      // 1 Bit, Bit 1
+#define     SHC_CNightPoint1SunMask 0x02
+#define     SHC_CNightPoint1SunShift 1
+#define SHC_CNightPoint1Stage                   289      // 3 Bits, Bit 7-5
+#define     SHC_CNightPoint1StageMask 0xE0
+#define     SHC_CNightPoint1StageShift 5
+#define SHC_CNightPoint1TriggerEvening          289      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint1TriggerEveningMask 0x1E
+#define     SHC_CNightPoint1TriggerEveningShift 1
+#define SHC_CNightPoint1TriggerEveningNoB       289      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint1TriggerEveningNoBMask 0x1E
+#define     SHC_CNightPoint1TriggerEveningNoBShift 1
+#define SHC_CNightPoint1TriggerMorning          289      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint1TriggerMorningMask 0x1E
+#define     SHC_CNightPoint1TriggerMorningShift 1
+#define SHC_CNightPoint1TriggerMorningNoB       289      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint1TriggerMorningNoBMask 0x1E
+#define     SHC_CNightPoint1TriggerMorningNoBShift 1
+#define SHC_CNightPoint1Condition               290      // 2 Bits, Bit 7-6
+#define     SHC_CNightPoint1ConditionMask 0xC0
+#define     SHC_CNightPoint1ConditionShift 6
+#define SHC_CNightPoint1LinkEvening             290      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint1LinkEveningMask 0x30
+#define     SHC_CNightPoint1LinkEveningShift 4
+#define SHC_CNightPoint1LinkMorning             290      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint1LinkMorningMask 0x30
+#define     SHC_CNightPoint1LinkMorningShift 4
+#define SHC_CNightPoint1Time                    291      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint1TimeOffset              293      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint1Elevation               295      // uint8_t
+#define SHC_CNightPoint1Lux                     296      // uint16_t
+#define SHC_CNightPoint1AndLux                  298      // uint16_t
+#define SHC_CNightPoint1ConditionTime           300      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint2Mon                     302      // 1 Bit, Bit 7
+#define     SHC_CNightPoint2MonMask 0x80
+#define     SHC_CNightPoint2MonShift 7
+#define SHC_CNightPoint2Tue                     302      // 1 Bit, Bit 6
+#define     SHC_CNightPoint2TueMask 0x40
+#define     SHC_CNightPoint2TueShift 6
+#define SHC_CNightPoint2Wed                     302      // 1 Bit, Bit 5
+#define     SHC_CNightPoint2WedMask 0x20
+#define     SHC_CNightPoint2WedShift 5
+#define SHC_CNightPoint2Thu                     302      // 1 Bit, Bit 4
+#define     SHC_CNightPoint2ThuMask 0x10
+#define     SHC_CNightPoint2ThuShift 4
+#define SHC_CNightPoint2Fri                     302      // 1 Bit, Bit 3
+#define     SHC_CNightPoint2FriMask 0x08
+#define     SHC_CNightPoint2FriShift 3
+#define SHC_CNightPoint2Sat                     302      // 1 Bit, Bit 2
+#define     SHC_CNightPoint2SatMask 0x04
+#define     SHC_CNightPoint2SatShift 2
+#define SHC_CNightPoint2Sun                     302      // 1 Bit, Bit 1
+#define     SHC_CNightPoint2SunMask 0x02
+#define     SHC_CNightPoint2SunShift 1
+#define SHC_CNightPoint2Stage                   303      // 3 Bits, Bit 7-5
+#define     SHC_CNightPoint2StageMask 0xE0
+#define     SHC_CNightPoint2StageShift 5
+#define SHC_CNightPoint2TriggerEvening          303      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint2TriggerEveningMask 0x1E
+#define     SHC_CNightPoint2TriggerEveningShift 1
+#define SHC_CNightPoint2TriggerEveningNoB       303      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint2TriggerEveningNoBMask 0x1E
+#define     SHC_CNightPoint2TriggerEveningNoBShift 1
+#define SHC_CNightPoint2TriggerMorning          303      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint2TriggerMorningMask 0x1E
+#define     SHC_CNightPoint2TriggerMorningShift 1
+#define SHC_CNightPoint2TriggerMorningNoB       303      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint2TriggerMorningNoBMask 0x1E
+#define     SHC_CNightPoint2TriggerMorningNoBShift 1
+#define SHC_CNightPoint2Condition               304      // 2 Bits, Bit 7-6
+#define     SHC_CNightPoint2ConditionMask 0xC0
+#define     SHC_CNightPoint2ConditionShift 6
+#define SHC_CNightPoint2LinkEvening             304      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint2LinkEveningMask 0x30
+#define     SHC_CNightPoint2LinkEveningShift 4
+#define SHC_CNightPoint2LinkMorning             304      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint2LinkMorningMask 0x30
+#define     SHC_CNightPoint2LinkMorningShift 4
+#define SHC_CNightPoint2Time                    305      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint2TimeOffset              307      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint2Elevation               309      // uint8_t
+#define SHC_CNightPoint2Lux                     310      // uint16_t
+#define SHC_CNightPoint2AndLux                  312      // uint16_t
+#define SHC_CNightPoint2ConditionTime           314      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint3Mon                     316      // 1 Bit, Bit 7
+#define     SHC_CNightPoint3MonMask 0x80
+#define     SHC_CNightPoint3MonShift 7
+#define SHC_CNightPoint3Tue                     316      // 1 Bit, Bit 6
+#define     SHC_CNightPoint3TueMask 0x40
+#define     SHC_CNightPoint3TueShift 6
+#define SHC_CNightPoint3Wed                     316      // 1 Bit, Bit 5
+#define     SHC_CNightPoint3WedMask 0x20
+#define     SHC_CNightPoint3WedShift 5
+#define SHC_CNightPoint3Thu                     316      // 1 Bit, Bit 4
+#define     SHC_CNightPoint3ThuMask 0x10
+#define     SHC_CNightPoint3ThuShift 4
+#define SHC_CNightPoint3Fri                     316      // 1 Bit, Bit 3
+#define     SHC_CNightPoint3FriMask 0x08
+#define     SHC_CNightPoint3FriShift 3
+#define SHC_CNightPoint3Sat                     316      // 1 Bit, Bit 2
+#define     SHC_CNightPoint3SatMask 0x04
+#define     SHC_CNightPoint3SatShift 2
+#define SHC_CNightPoint3Sun                     316      // 1 Bit, Bit 1
+#define     SHC_CNightPoint3SunMask 0x02
+#define     SHC_CNightPoint3SunShift 1
+#define SHC_CNightPoint3Stage                   317      // 3 Bits, Bit 7-5
+#define     SHC_CNightPoint3StageMask 0xE0
+#define     SHC_CNightPoint3StageShift 5
+#define SHC_CNightPoint3TriggerEvening          317      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint3TriggerEveningMask 0x1E
+#define     SHC_CNightPoint3TriggerEveningShift 1
+#define SHC_CNightPoint3TriggerEveningNoB       317      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint3TriggerEveningNoBMask 0x1E
+#define     SHC_CNightPoint3TriggerEveningNoBShift 1
+#define SHC_CNightPoint3TriggerMorning          317      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint3TriggerMorningMask 0x1E
+#define     SHC_CNightPoint3TriggerMorningShift 1
+#define SHC_CNightPoint3TriggerMorningNoB       317      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint3TriggerMorningNoBMask 0x1E
+#define     SHC_CNightPoint3TriggerMorningNoBShift 1
+#define SHC_CNightPoint3Condition               318      // 2 Bits, Bit 7-6
+#define     SHC_CNightPoint3ConditionMask 0xC0
+#define     SHC_CNightPoint3ConditionShift 6
+#define SHC_CNightPoint3LinkEvening             318      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint3LinkEveningMask 0x30
+#define     SHC_CNightPoint3LinkEveningShift 4
+#define SHC_CNightPoint3LinkMorning             318      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint3LinkMorningMask 0x30
+#define     SHC_CNightPoint3LinkMorningShift 4
+#define SHC_CNightPoint3Time                    319      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint3TimeOffset              321      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint3Elevation               323      // uint8_t
+#define SHC_CNightPoint3Lux                     324      // uint16_t
+#define SHC_CNightPoint3AndLux                  326      // uint16_t
+#define SHC_CNightPoint3ConditionTime           328      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint4Mon                     330      // 1 Bit, Bit 7
+#define     SHC_CNightPoint4MonMask 0x80
+#define     SHC_CNightPoint4MonShift 7
+#define SHC_CNightPoint4Tue                     330      // 1 Bit, Bit 6
+#define     SHC_CNightPoint4TueMask 0x40
+#define     SHC_CNightPoint4TueShift 6
+#define SHC_CNightPoint4Wed                     330      // 1 Bit, Bit 5
+#define     SHC_CNightPoint4WedMask 0x20
+#define     SHC_CNightPoint4WedShift 5
+#define SHC_CNightPoint4Thu                     330      // 1 Bit, Bit 4
+#define     SHC_CNightPoint4ThuMask 0x10
+#define     SHC_CNightPoint4ThuShift 4
+#define SHC_CNightPoint4Fri                     330      // 1 Bit, Bit 3
+#define     SHC_CNightPoint4FriMask 0x08
+#define     SHC_CNightPoint4FriShift 3
+#define SHC_CNightPoint4Sat                     330      // 1 Bit, Bit 2
+#define     SHC_CNightPoint4SatMask 0x04
+#define     SHC_CNightPoint4SatShift 2
+#define SHC_CNightPoint4Sun                     330      // 1 Bit, Bit 1
+#define     SHC_CNightPoint4SunMask 0x02
+#define     SHC_CNightPoint4SunShift 1
+#define SHC_CNightPoint4Stage                   331      // 3 Bits, Bit 7-5
+#define     SHC_CNightPoint4StageMask 0xE0
+#define     SHC_CNightPoint4StageShift 5
+#define SHC_CNightPoint4TriggerEvening          331      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint4TriggerEveningMask 0x1E
+#define     SHC_CNightPoint4TriggerEveningShift 1
+#define SHC_CNightPoint4TriggerEveningNoB       331      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint4TriggerEveningNoBMask 0x1E
+#define     SHC_CNightPoint4TriggerEveningNoBShift 1
+#define SHC_CNightPoint4TriggerMorning          331      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint4TriggerMorningMask 0x1E
+#define     SHC_CNightPoint4TriggerMorningShift 1
+#define SHC_CNightPoint4TriggerMorningNoB       331      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint4TriggerMorningNoBMask 0x1E
+#define     SHC_CNightPoint4TriggerMorningNoBShift 1
+#define SHC_CNightPoint4Condition               332      // 2 Bits, Bit 7-6
+#define     SHC_CNightPoint4ConditionMask 0xC0
+#define     SHC_CNightPoint4ConditionShift 6
+#define SHC_CNightPoint4LinkEvening             332      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint4LinkEveningMask 0x30
+#define     SHC_CNightPoint4LinkEveningShift 4
+#define SHC_CNightPoint4LinkMorning             332      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint4LinkMorningMask 0x30
+#define     SHC_CNightPoint4LinkMorningShift 4
+#define SHC_CNightPoint4Time                    333      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint4TimeOffset              335      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint4Elevation               337      // uint8_t
+#define SHC_CNightPoint4Lux                     338      // uint16_t
+#define SHC_CNightPoint4AndLux                  340      // uint16_t
+#define SHC_CNightPoint4ConditionTime           342      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint5Mon                     344      // 1 Bit, Bit 7
+#define     SHC_CNightPoint5MonMask 0x80
+#define     SHC_CNightPoint5MonShift 7
+#define SHC_CNightPoint5Tue                     344      // 1 Bit, Bit 6
+#define     SHC_CNightPoint5TueMask 0x40
+#define     SHC_CNightPoint5TueShift 6
+#define SHC_CNightPoint5Wed                     344      // 1 Bit, Bit 5
+#define     SHC_CNightPoint5WedMask 0x20
+#define     SHC_CNightPoint5WedShift 5
+#define SHC_CNightPoint5Thu                     344      // 1 Bit, Bit 4
+#define     SHC_CNightPoint5ThuMask 0x10
+#define     SHC_CNightPoint5ThuShift 4
+#define SHC_CNightPoint5Fri                     344      // 1 Bit, Bit 3
+#define     SHC_CNightPoint5FriMask 0x08
+#define     SHC_CNightPoint5FriShift 3
+#define SHC_CNightPoint5Sat                     344      // 1 Bit, Bit 2
+#define     SHC_CNightPoint5SatMask 0x04
+#define     SHC_CNightPoint5SatShift 2
+#define SHC_CNightPoint5Sun                     344      // 1 Bit, Bit 1
+#define     SHC_CNightPoint5SunMask 0x02
+#define     SHC_CNightPoint5SunShift 1
+#define SHC_CNightPoint5Stage                   345      // 3 Bits, Bit 7-5
+#define     SHC_CNightPoint5StageMask 0xE0
+#define     SHC_CNightPoint5StageShift 5
+#define SHC_CNightPoint5TriggerEvening          345      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint5TriggerEveningMask 0x1E
+#define     SHC_CNightPoint5TriggerEveningShift 1
+#define SHC_CNightPoint5TriggerEveningNoB       345      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint5TriggerEveningNoBMask 0x1E
+#define     SHC_CNightPoint5TriggerEveningNoBShift 1
+#define SHC_CNightPoint5TriggerMorning          345      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint5TriggerMorningMask 0x1E
+#define     SHC_CNightPoint5TriggerMorningShift 1
+#define SHC_CNightPoint5TriggerMorningNoB       345      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint5TriggerMorningNoBMask 0x1E
+#define     SHC_CNightPoint5TriggerMorningNoBShift 1
+#define SHC_CNightPoint5Condition               346      // 2 Bits, Bit 7-6
+#define     SHC_CNightPoint5ConditionMask 0xC0
+#define     SHC_CNightPoint5ConditionShift 6
+#define SHC_CNightPoint5LinkEvening             346      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint5LinkEveningMask 0x30
+#define     SHC_CNightPoint5LinkEveningShift 4
+#define SHC_CNightPoint5LinkMorning             346      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint5LinkMorningMask 0x30
+#define     SHC_CNightPoint5LinkMorningShift 4
+#define SHC_CNightPoint5Time                    347      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint5TimeOffset              349      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint5Elevation               351      // uint8_t
+#define SHC_CNightPoint5Lux                     352      // uint16_t
+#define SHC_CNightPoint5AndLux                  354      // uint16_t
+#define SHC_CNightPoint5ConditionTime           356      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint6Mon                     358      // 1 Bit, Bit 7
+#define     SHC_CNightPoint6MonMask 0x80
+#define     SHC_CNightPoint6MonShift 7
+#define SHC_CNightPoint6Tue                     358      // 1 Bit, Bit 6
+#define     SHC_CNightPoint6TueMask 0x40
+#define     SHC_CNightPoint6TueShift 6
+#define SHC_CNightPoint6Wed                     358      // 1 Bit, Bit 5
+#define     SHC_CNightPoint6WedMask 0x20
+#define     SHC_CNightPoint6WedShift 5
+#define SHC_CNightPoint6Thu                     358      // 1 Bit, Bit 4
+#define     SHC_CNightPoint6ThuMask 0x10
+#define     SHC_CNightPoint6ThuShift 4
+#define SHC_CNightPoint6Fri                     358      // 1 Bit, Bit 3
+#define     SHC_CNightPoint6FriMask 0x08
+#define     SHC_CNightPoint6FriShift 3
+#define SHC_CNightPoint6Sat                     358      // 1 Bit, Bit 2
+#define     SHC_CNightPoint6SatMask 0x04
+#define     SHC_CNightPoint6SatShift 2
+#define SHC_CNightPoint6Sun                     358      // 1 Bit, Bit 1
+#define     SHC_CNightPoint6SunMask 0x02
+#define     SHC_CNightPoint6SunShift 1
+#define SHC_CNightPoint6Stage                   359      // 3 Bits, Bit 7-5
+#define     SHC_CNightPoint6StageMask 0xE0
+#define     SHC_CNightPoint6StageShift 5
+#define SHC_CNightPoint6TriggerEvening          359      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint6TriggerEveningMask 0x1E
+#define     SHC_CNightPoint6TriggerEveningShift 1
+#define SHC_CNightPoint6TriggerEveningNoB       359      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint6TriggerEveningNoBMask 0x1E
+#define     SHC_CNightPoint6TriggerEveningNoBShift 1
+#define SHC_CNightPoint6TriggerMorning          359      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint6TriggerMorningMask 0x1E
+#define     SHC_CNightPoint6TriggerMorningShift 1
+#define SHC_CNightPoint6TriggerMorningNoB       359      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint6TriggerMorningNoBMask 0x1E
+#define     SHC_CNightPoint6TriggerMorningNoBShift 1
+#define SHC_CNightPoint6Condition               360      // 2 Bits, Bit 7-6
+#define     SHC_CNightPoint6ConditionMask 0xC0
+#define     SHC_CNightPoint6ConditionShift 6
+#define SHC_CNightPoint6LinkEvening             360      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint6LinkEveningMask 0x30
+#define     SHC_CNightPoint6LinkEveningShift 4
+#define SHC_CNightPoint6LinkMorning             360      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint6LinkMorningMask 0x30
+#define     SHC_CNightPoint6LinkMorningShift 4
+#define SHC_CNightPoint6Time                    361      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint6TimeOffset              363      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint6Elevation               365      // uint8_t
+#define SHC_CNightPoint6Lux                     366      // uint16_t
+#define SHC_CNightPoint6AndLux                  368      // uint16_t
+#define SHC_CNightPoint6ConditionTime           370      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint7Mon                     372      // 1 Bit, Bit 7
+#define     SHC_CNightPoint7MonMask 0x80
+#define     SHC_CNightPoint7MonShift 7
+#define SHC_CNightPoint7Tue                     372      // 1 Bit, Bit 6
+#define     SHC_CNightPoint7TueMask 0x40
+#define     SHC_CNightPoint7TueShift 6
+#define SHC_CNightPoint7Wed                     372      // 1 Bit, Bit 5
+#define     SHC_CNightPoint7WedMask 0x20
+#define     SHC_CNightPoint7WedShift 5
+#define SHC_CNightPoint7Thu                     372      // 1 Bit, Bit 4
+#define     SHC_CNightPoint7ThuMask 0x10
+#define     SHC_CNightPoint7ThuShift 4
+#define SHC_CNightPoint7Fri                     372      // 1 Bit, Bit 3
+#define     SHC_CNightPoint7FriMask 0x08
+#define     SHC_CNightPoint7FriShift 3
+#define SHC_CNightPoint7Sat                     372      // 1 Bit, Bit 2
+#define     SHC_CNightPoint7SatMask 0x04
+#define     SHC_CNightPoint7SatShift 2
+#define SHC_CNightPoint7Sun                     372      // 1 Bit, Bit 1
+#define     SHC_CNightPoint7SunMask 0x02
+#define     SHC_CNightPoint7SunShift 1
+#define SHC_CNightPoint7Stage                   373      // 3 Bits, Bit 7-5
+#define     SHC_CNightPoint7StageMask 0xE0
+#define     SHC_CNightPoint7StageShift 5
+#define SHC_CNightPoint7TriggerEvening          373      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint7TriggerEveningMask 0x1E
+#define     SHC_CNightPoint7TriggerEveningShift 1
+#define SHC_CNightPoint7TriggerEveningNoB       373      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint7TriggerEveningNoBMask 0x1E
+#define     SHC_CNightPoint7TriggerEveningNoBShift 1
+#define SHC_CNightPoint7TriggerMorning          373      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint7TriggerMorningMask 0x1E
+#define     SHC_CNightPoint7TriggerMorningShift 1
+#define SHC_CNightPoint7TriggerMorningNoB       373      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint7TriggerMorningNoBMask 0x1E
+#define     SHC_CNightPoint7TriggerMorningNoBShift 1
+#define SHC_CNightPoint7Condition               374      // 2 Bits, Bit 7-6
+#define     SHC_CNightPoint7ConditionMask 0xC0
+#define     SHC_CNightPoint7ConditionShift 6
+#define SHC_CNightPoint7LinkEvening             374      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint7LinkEveningMask 0x30
+#define     SHC_CNightPoint7LinkEveningShift 4
+#define SHC_CNightPoint7LinkMorning             374      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint7LinkMorningMask 0x30
+#define     SHC_CNightPoint7LinkMorningShift 4
+#define SHC_CNightPoint7Time                    375      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint7TimeOffset              377      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint7Elevation               379      // uint8_t
+#define SHC_CNightPoint7Lux                     380      // uint16_t
+#define SHC_CNightPoint7AndLux                  382      // uint16_t
+#define SHC_CNightPoint7ConditionTime           384      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint8Mon                     386      // 1 Bit, Bit 7
+#define     SHC_CNightPoint8MonMask 0x80
+#define     SHC_CNightPoint8MonShift 7
+#define SHC_CNightPoint8Tue                     386      // 1 Bit, Bit 6
+#define     SHC_CNightPoint8TueMask 0x40
+#define     SHC_CNightPoint8TueShift 6
+#define SHC_CNightPoint8Wed                     386      // 1 Bit, Bit 5
+#define     SHC_CNightPoint8WedMask 0x20
+#define     SHC_CNightPoint8WedShift 5
+#define SHC_CNightPoint8Thu                     386      // 1 Bit, Bit 4
+#define     SHC_CNightPoint8ThuMask 0x10
+#define     SHC_CNightPoint8ThuShift 4
+#define SHC_CNightPoint8Fri                     386      // 1 Bit, Bit 3
+#define     SHC_CNightPoint8FriMask 0x08
+#define     SHC_CNightPoint8FriShift 3
+#define SHC_CNightPoint8Sat                     386      // 1 Bit, Bit 2
+#define     SHC_CNightPoint8SatMask 0x04
+#define     SHC_CNightPoint8SatShift 2
+#define SHC_CNightPoint8Sun                     386      // 1 Bit, Bit 1
+#define     SHC_CNightPoint8SunMask 0x02
+#define     SHC_CNightPoint8SunShift 1
+#define SHC_CNightPoint8Stage                   387      // 3 Bits, Bit 7-5
+#define     SHC_CNightPoint8StageMask 0xE0
+#define     SHC_CNightPoint8StageShift 5
+#define SHC_CNightPoint8TriggerEvening          387      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint8TriggerEveningMask 0x1E
+#define     SHC_CNightPoint8TriggerEveningShift 1
+#define SHC_CNightPoint8TriggerEveningNoB       387      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint8TriggerEveningNoBMask 0x1E
+#define     SHC_CNightPoint8TriggerEveningNoBShift 1
+#define SHC_CNightPoint8TriggerMorning          387      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint8TriggerMorningMask 0x1E
+#define     SHC_CNightPoint8TriggerMorningShift 1
+#define SHC_CNightPoint8TriggerMorningNoB       387      // 4 Bits, Bit 4-1
+#define     SHC_CNightPoint8TriggerMorningNoBMask 0x1E
+#define     SHC_CNightPoint8TriggerMorningNoBShift 1
+#define SHC_CNightPoint8Condition               388      // 2 Bits, Bit 7-6
+#define     SHC_CNightPoint8ConditionMask 0xC0
+#define     SHC_CNightPoint8ConditionShift 6
+#define SHC_CNightPoint8LinkEvening             388      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint8LinkEveningMask 0x30
+#define     SHC_CNightPoint8LinkEveningShift 4
+#define SHC_CNightPoint8LinkMorning             388      // 2 Bits, Bit 5-4
+#define     SHC_CNightPoint8LinkMorningMask 0x30
+#define     SHC_CNightPoint8LinkMorningShift 4
+#define SHC_CNightPoint8Time                    389      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint8TimeOffset              391      // 16 Bits, Bit 15-0
+#define SHC_CNightPoint8Elevation               393      // uint8_t
+#define SHC_CNightPoint8Lux                     394      // uint16_t
+#define SHC_CNightPoint8AndLux                  396      // uint16_t
+#define SHC_CNightPoint8ConditionTime           398      // 16 Bits, Bit 15-0
 #define SHC_CWindowOpenPositionControl1         34      // 4 Bits, Bit 7-4
 #define     SHC_CWindowOpenPositionControl1Mask 0xF0
 #define     SHC_CWindowOpenPositionControl1Shift 4
@@ -1790,6 +2257,372 @@
 #define ParamSHC_CScene16Delay                       (knx.paramWord(SHC_ParamCalcIndex(SHC_CScene16Delay)))
 // Nach Abruf
 #define ParamSHC_CScene16Hold                        ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CScene16Hold)) & SHC_CScene16HoldMask))
+// Verhalten bei Sperre
+#define ParamSHC_CNightLockBehavior                  ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightLockBehavior)) & SHC_CNightLockBehaviorMask))
+// Beschattung hat in den Vorstufen Vorrang
+#define ParamSHC_CNightShadingPrecedence             ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightShadingPrecedence)) & SHC_CNightShadingPrecedenceMask))
+// Helligkeit im Nachtmodus
+#define ParamSHC_CNightBrightnessSource              ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightBrightnessSource)) & SHC_CNightBrightnessSourceMask) >> SHC_CNightBrightnessSourceShift)
+// Helligkeit im Nachtmodus
+#define ParamSHC_CNightBrightnessSourceDusk          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightBrightnessSourceDusk)) & SHC_CNightBrightnessSourceDuskMask) >> SHC_CNightBrightnessSourceDuskShift)
+// Helligkeit im Nachtmodus
+#define ParamSHC_CNightBrightnessSourceSensors       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightBrightnessSourceSensors)) & SHC_CNightBrightnessSourceSensorsMask) >> SHC_CNightBrightnessSourceSensorsShift)
+// Konfiguration migriert
+#define ParamSHC_CNightMigrated                      ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightMigrated)) & SHC_CNightMigratedMask))
+// Mindestdauer Helligkeit
+#define ParamSHC_CNightBrightnessDuration            (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightBrightnessDuration)))
+// Aktion
+#define ParamSHC_CNightStage1Action                  ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightStage1Action)) & SHC_CNightStage1ActionMask) >> SHC_CNightStage1ActionShift)
+// Aktion
+#define ParamSHC_CNightStage2Action                  ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightStage2Action)) & SHC_CNightStage2ActionMask) >> SHC_CNightStage2ActionShift)
+// Aktion
+#define ParamSHC_CNightStage3Action                  ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightStage3Action)) & SHC_CNightStage3ActionMask) >> SHC_CNightStage3ActionShift)
+// Aktion
+#define ParamSHC_CNightStage4Action                  (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightStage4Action)) & SHC_CNightStage4ActionMask)
+// Höhe
+#define ParamSHC_CNightStage1Position                (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightStage1Position)) & SHC_CNightStage1PositionMask)
+// Lamelle
+#define ParamSHC_CNightStage1Slat                    (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightStage1Slat)) & SHC_CNightStage1SlatMask)
+// Höhe
+#define ParamSHC_CNightStage3Position                (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightStage3Position)) & SHC_CNightStage3PositionMask)
+// Lamelle
+#define ParamSHC_CNightStage3Slat                    (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightStage3Slat)) & SHC_CNightStage3SlatMask)
+// Mo
+#define ParamSHC_CNightPoint1Mon                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Mon)) & SHC_CNightPoint1MonMask))
+// Di
+#define ParamSHC_CNightPoint1Tue                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Tue)) & SHC_CNightPoint1TueMask))
+// Mi
+#define ParamSHC_CNightPoint1Wed                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Wed)) & SHC_CNightPoint1WedMask))
+// Do
+#define ParamSHC_CNightPoint1Thu                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Thu)) & SHC_CNightPoint1ThuMask))
+// Fr
+#define ParamSHC_CNightPoint1Fri                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Fri)) & SHC_CNightPoint1FriMask))
+// Sa
+#define ParamSHC_CNightPoint1Sat                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Sat)) & SHC_CNightPoint1SatMask))
+// So
+#define ParamSHC_CNightPoint1Sun                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Sun)) & SHC_CNightPoint1SunMask))
+// Stufe
+#define ParamSHC_CNightPoint1Stage                   ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Stage)) & SHC_CNightPoint1StageMask) >> SHC_CNightPoint1StageShift)
+// Auslöser
+#define ParamSHC_CNightPoint1TriggerEvening          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1TriggerEvening)) & SHC_CNightPoint1TriggerEveningMask) >> SHC_CNightPoint1TriggerEveningShift)
+// Auslöser
+#define ParamSHC_CNightPoint1TriggerEveningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1TriggerEveningNoB)) & SHC_CNightPoint1TriggerEveningNoBMask) >> SHC_CNightPoint1TriggerEveningNoBShift)
+// Auslöser
+#define ParamSHC_CNightPoint1TriggerMorning          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1TriggerMorning)) & SHC_CNightPoint1TriggerMorningMask) >> SHC_CNightPoint1TriggerMorningShift)
+// Auslöser
+#define ParamSHC_CNightPoint1TriggerMorningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1TriggerMorningNoB)) & SHC_CNightPoint1TriggerMorningNoBMask) >> SHC_CNightPoint1TriggerMorningNoBShift)
+// Bedingung
+#define ParamSHC_CNightPoint1Condition               ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Condition)) & SHC_CNightPoint1ConditionMask) >> SHC_CNightPoint1ConditionShift)
+// Helligkeit
+#define ParamSHC_CNightPoint1LinkEvening             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1LinkEvening)) & SHC_CNightPoint1LinkEveningMask) >> SHC_CNightPoint1LinkEveningShift)
+// Helligkeit
+#define ParamSHC_CNightPoint1LinkMorning             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1LinkMorning)) & SHC_CNightPoint1LinkMorningMask) >> SHC_CNightPoint1LinkMorningShift)
+// Uhrzeit
+#define ParamSHC_CNightPoint1Time                    (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint1Time)))
+// Zeitversatz
+#define ParamSHC_CNightPoint1TimeOffset              (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint1TimeOffset)))
+// Höhenwinkel
+#define ParamSHC_CNightPoint1Elevation               (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint1Elevation)))
+// Helligkeit
+#define ParamSHC_CNightPoint1Lux                     (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint1Lux)))
+// Lux
+#define ParamSHC_CNightPoint1AndLux                  (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint1AndLux)))
+// Zeit
+#define ParamSHC_CNightPoint1ConditionTime           (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint1ConditionTime)))
+// Mo
+#define ParamSHC_CNightPoint2Mon                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Mon)) & SHC_CNightPoint2MonMask))
+// Di
+#define ParamSHC_CNightPoint2Tue                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Tue)) & SHC_CNightPoint2TueMask))
+// Mi
+#define ParamSHC_CNightPoint2Wed                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Wed)) & SHC_CNightPoint2WedMask))
+// Do
+#define ParamSHC_CNightPoint2Thu                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Thu)) & SHC_CNightPoint2ThuMask))
+// Fr
+#define ParamSHC_CNightPoint2Fri                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Fri)) & SHC_CNightPoint2FriMask))
+// Sa
+#define ParamSHC_CNightPoint2Sat                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Sat)) & SHC_CNightPoint2SatMask))
+// So
+#define ParamSHC_CNightPoint2Sun                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Sun)) & SHC_CNightPoint2SunMask))
+// Stufe
+#define ParamSHC_CNightPoint2Stage                   ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Stage)) & SHC_CNightPoint2StageMask) >> SHC_CNightPoint2StageShift)
+// Auslöser
+#define ParamSHC_CNightPoint2TriggerEvening          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2TriggerEvening)) & SHC_CNightPoint2TriggerEveningMask) >> SHC_CNightPoint2TriggerEveningShift)
+// Auslöser
+#define ParamSHC_CNightPoint2TriggerEveningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2TriggerEveningNoB)) & SHC_CNightPoint2TriggerEveningNoBMask) >> SHC_CNightPoint2TriggerEveningNoBShift)
+// Auslöser
+#define ParamSHC_CNightPoint2TriggerMorning          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2TriggerMorning)) & SHC_CNightPoint2TriggerMorningMask) >> SHC_CNightPoint2TriggerMorningShift)
+// Auslöser
+#define ParamSHC_CNightPoint2TriggerMorningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2TriggerMorningNoB)) & SHC_CNightPoint2TriggerMorningNoBMask) >> SHC_CNightPoint2TriggerMorningNoBShift)
+// Bedingung
+#define ParamSHC_CNightPoint2Condition               ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Condition)) & SHC_CNightPoint2ConditionMask) >> SHC_CNightPoint2ConditionShift)
+// Helligkeit
+#define ParamSHC_CNightPoint2LinkEvening             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2LinkEvening)) & SHC_CNightPoint2LinkEveningMask) >> SHC_CNightPoint2LinkEveningShift)
+// Helligkeit
+#define ParamSHC_CNightPoint2LinkMorning             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2LinkMorning)) & SHC_CNightPoint2LinkMorningMask) >> SHC_CNightPoint2LinkMorningShift)
+// Uhrzeit
+#define ParamSHC_CNightPoint2Time                    (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint2Time)))
+// Zeitversatz
+#define ParamSHC_CNightPoint2TimeOffset              (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint2TimeOffset)))
+// Höhenwinkel
+#define ParamSHC_CNightPoint2Elevation               (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint2Elevation)))
+// Helligkeit
+#define ParamSHC_CNightPoint2Lux                     (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint2Lux)))
+// Lux
+#define ParamSHC_CNightPoint2AndLux                  (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint2AndLux)))
+// Zeit
+#define ParamSHC_CNightPoint2ConditionTime           (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint2ConditionTime)))
+// Mo
+#define ParamSHC_CNightPoint3Mon                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Mon)) & SHC_CNightPoint3MonMask))
+// Di
+#define ParamSHC_CNightPoint3Tue                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Tue)) & SHC_CNightPoint3TueMask))
+// Mi
+#define ParamSHC_CNightPoint3Wed                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Wed)) & SHC_CNightPoint3WedMask))
+// Do
+#define ParamSHC_CNightPoint3Thu                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Thu)) & SHC_CNightPoint3ThuMask))
+// Fr
+#define ParamSHC_CNightPoint3Fri                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Fri)) & SHC_CNightPoint3FriMask))
+// Sa
+#define ParamSHC_CNightPoint3Sat                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Sat)) & SHC_CNightPoint3SatMask))
+// So
+#define ParamSHC_CNightPoint3Sun                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Sun)) & SHC_CNightPoint3SunMask))
+// Stufe
+#define ParamSHC_CNightPoint3Stage                   ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Stage)) & SHC_CNightPoint3StageMask) >> SHC_CNightPoint3StageShift)
+// Auslöser
+#define ParamSHC_CNightPoint3TriggerEvening          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3TriggerEvening)) & SHC_CNightPoint3TriggerEveningMask) >> SHC_CNightPoint3TriggerEveningShift)
+// Auslöser
+#define ParamSHC_CNightPoint3TriggerEveningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3TriggerEveningNoB)) & SHC_CNightPoint3TriggerEveningNoBMask) >> SHC_CNightPoint3TriggerEveningNoBShift)
+// Auslöser
+#define ParamSHC_CNightPoint3TriggerMorning          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3TriggerMorning)) & SHC_CNightPoint3TriggerMorningMask) >> SHC_CNightPoint3TriggerMorningShift)
+// Auslöser
+#define ParamSHC_CNightPoint3TriggerMorningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3TriggerMorningNoB)) & SHC_CNightPoint3TriggerMorningNoBMask) >> SHC_CNightPoint3TriggerMorningNoBShift)
+// Bedingung
+#define ParamSHC_CNightPoint3Condition               ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Condition)) & SHC_CNightPoint3ConditionMask) >> SHC_CNightPoint3ConditionShift)
+// Helligkeit
+#define ParamSHC_CNightPoint3LinkEvening             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3LinkEvening)) & SHC_CNightPoint3LinkEveningMask) >> SHC_CNightPoint3LinkEveningShift)
+// Helligkeit
+#define ParamSHC_CNightPoint3LinkMorning             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3LinkMorning)) & SHC_CNightPoint3LinkMorningMask) >> SHC_CNightPoint3LinkMorningShift)
+// Uhrzeit
+#define ParamSHC_CNightPoint3Time                    (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint3Time)))
+// Zeitversatz
+#define ParamSHC_CNightPoint3TimeOffset              (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint3TimeOffset)))
+// Höhenwinkel
+#define ParamSHC_CNightPoint3Elevation               (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint3Elevation)))
+// Helligkeit
+#define ParamSHC_CNightPoint3Lux                     (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint3Lux)))
+// Lux
+#define ParamSHC_CNightPoint3AndLux                  (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint3AndLux)))
+// Zeit
+#define ParamSHC_CNightPoint3ConditionTime           (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint3ConditionTime)))
+// Mo
+#define ParamSHC_CNightPoint4Mon                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Mon)) & SHC_CNightPoint4MonMask))
+// Di
+#define ParamSHC_CNightPoint4Tue                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Tue)) & SHC_CNightPoint4TueMask))
+// Mi
+#define ParamSHC_CNightPoint4Wed                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Wed)) & SHC_CNightPoint4WedMask))
+// Do
+#define ParamSHC_CNightPoint4Thu                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Thu)) & SHC_CNightPoint4ThuMask))
+// Fr
+#define ParamSHC_CNightPoint4Fri                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Fri)) & SHC_CNightPoint4FriMask))
+// Sa
+#define ParamSHC_CNightPoint4Sat                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Sat)) & SHC_CNightPoint4SatMask))
+// So
+#define ParamSHC_CNightPoint4Sun                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Sun)) & SHC_CNightPoint4SunMask))
+// Stufe
+#define ParamSHC_CNightPoint4Stage                   ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Stage)) & SHC_CNightPoint4StageMask) >> SHC_CNightPoint4StageShift)
+// Auslöser
+#define ParamSHC_CNightPoint4TriggerEvening          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4TriggerEvening)) & SHC_CNightPoint4TriggerEveningMask) >> SHC_CNightPoint4TriggerEveningShift)
+// Auslöser
+#define ParamSHC_CNightPoint4TriggerEveningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4TriggerEveningNoB)) & SHC_CNightPoint4TriggerEveningNoBMask) >> SHC_CNightPoint4TriggerEveningNoBShift)
+// Auslöser
+#define ParamSHC_CNightPoint4TriggerMorning          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4TriggerMorning)) & SHC_CNightPoint4TriggerMorningMask) >> SHC_CNightPoint4TriggerMorningShift)
+// Auslöser
+#define ParamSHC_CNightPoint4TriggerMorningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4TriggerMorningNoB)) & SHC_CNightPoint4TriggerMorningNoBMask) >> SHC_CNightPoint4TriggerMorningNoBShift)
+// Bedingung
+#define ParamSHC_CNightPoint4Condition               ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Condition)) & SHC_CNightPoint4ConditionMask) >> SHC_CNightPoint4ConditionShift)
+// Helligkeit
+#define ParamSHC_CNightPoint4LinkEvening             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4LinkEvening)) & SHC_CNightPoint4LinkEveningMask) >> SHC_CNightPoint4LinkEveningShift)
+// Helligkeit
+#define ParamSHC_CNightPoint4LinkMorning             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4LinkMorning)) & SHC_CNightPoint4LinkMorningMask) >> SHC_CNightPoint4LinkMorningShift)
+// Uhrzeit
+#define ParamSHC_CNightPoint4Time                    (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint4Time)))
+// Zeitversatz
+#define ParamSHC_CNightPoint4TimeOffset              (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint4TimeOffset)))
+// Höhenwinkel
+#define ParamSHC_CNightPoint4Elevation               (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint4Elevation)))
+// Helligkeit
+#define ParamSHC_CNightPoint4Lux                     (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint4Lux)))
+// Lux
+#define ParamSHC_CNightPoint4AndLux                  (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint4AndLux)))
+// Zeit
+#define ParamSHC_CNightPoint4ConditionTime           (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint4ConditionTime)))
+// Mo
+#define ParamSHC_CNightPoint5Mon                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Mon)) & SHC_CNightPoint5MonMask))
+// Di
+#define ParamSHC_CNightPoint5Tue                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Tue)) & SHC_CNightPoint5TueMask))
+// Mi
+#define ParamSHC_CNightPoint5Wed                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Wed)) & SHC_CNightPoint5WedMask))
+// Do
+#define ParamSHC_CNightPoint5Thu                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Thu)) & SHC_CNightPoint5ThuMask))
+// Fr
+#define ParamSHC_CNightPoint5Fri                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Fri)) & SHC_CNightPoint5FriMask))
+// Sa
+#define ParamSHC_CNightPoint5Sat                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Sat)) & SHC_CNightPoint5SatMask))
+// So
+#define ParamSHC_CNightPoint5Sun                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Sun)) & SHC_CNightPoint5SunMask))
+// Stufe
+#define ParamSHC_CNightPoint5Stage                   ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Stage)) & SHC_CNightPoint5StageMask) >> SHC_CNightPoint5StageShift)
+// Auslöser
+#define ParamSHC_CNightPoint5TriggerEvening          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5TriggerEvening)) & SHC_CNightPoint5TriggerEveningMask) >> SHC_CNightPoint5TriggerEveningShift)
+// Auslöser
+#define ParamSHC_CNightPoint5TriggerEveningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5TriggerEveningNoB)) & SHC_CNightPoint5TriggerEveningNoBMask) >> SHC_CNightPoint5TriggerEveningNoBShift)
+// Auslöser
+#define ParamSHC_CNightPoint5TriggerMorning          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5TriggerMorning)) & SHC_CNightPoint5TriggerMorningMask) >> SHC_CNightPoint5TriggerMorningShift)
+// Auslöser
+#define ParamSHC_CNightPoint5TriggerMorningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5TriggerMorningNoB)) & SHC_CNightPoint5TriggerMorningNoBMask) >> SHC_CNightPoint5TriggerMorningNoBShift)
+// Bedingung
+#define ParamSHC_CNightPoint5Condition               ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Condition)) & SHC_CNightPoint5ConditionMask) >> SHC_CNightPoint5ConditionShift)
+// Helligkeit
+#define ParamSHC_CNightPoint5LinkEvening             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5LinkEvening)) & SHC_CNightPoint5LinkEveningMask) >> SHC_CNightPoint5LinkEveningShift)
+// Helligkeit
+#define ParamSHC_CNightPoint5LinkMorning             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5LinkMorning)) & SHC_CNightPoint5LinkMorningMask) >> SHC_CNightPoint5LinkMorningShift)
+// Uhrzeit
+#define ParamSHC_CNightPoint5Time                    (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint5Time)))
+// Zeitversatz
+#define ParamSHC_CNightPoint5TimeOffset              (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint5TimeOffset)))
+// Höhenwinkel
+#define ParamSHC_CNightPoint5Elevation               (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint5Elevation)))
+// Helligkeit
+#define ParamSHC_CNightPoint5Lux                     (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint5Lux)))
+// Lux
+#define ParamSHC_CNightPoint5AndLux                  (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint5AndLux)))
+// Zeit
+#define ParamSHC_CNightPoint5ConditionTime           (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint5ConditionTime)))
+// Mo
+#define ParamSHC_CNightPoint6Mon                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Mon)) & SHC_CNightPoint6MonMask))
+// Di
+#define ParamSHC_CNightPoint6Tue                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Tue)) & SHC_CNightPoint6TueMask))
+// Mi
+#define ParamSHC_CNightPoint6Wed                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Wed)) & SHC_CNightPoint6WedMask))
+// Do
+#define ParamSHC_CNightPoint6Thu                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Thu)) & SHC_CNightPoint6ThuMask))
+// Fr
+#define ParamSHC_CNightPoint6Fri                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Fri)) & SHC_CNightPoint6FriMask))
+// Sa
+#define ParamSHC_CNightPoint6Sat                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Sat)) & SHC_CNightPoint6SatMask))
+// So
+#define ParamSHC_CNightPoint6Sun                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Sun)) & SHC_CNightPoint6SunMask))
+// Stufe
+#define ParamSHC_CNightPoint6Stage                   ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Stage)) & SHC_CNightPoint6StageMask) >> SHC_CNightPoint6StageShift)
+// Auslöser
+#define ParamSHC_CNightPoint6TriggerEvening          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6TriggerEvening)) & SHC_CNightPoint6TriggerEveningMask) >> SHC_CNightPoint6TriggerEveningShift)
+// Auslöser
+#define ParamSHC_CNightPoint6TriggerEveningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6TriggerEveningNoB)) & SHC_CNightPoint6TriggerEveningNoBMask) >> SHC_CNightPoint6TriggerEveningNoBShift)
+// Auslöser
+#define ParamSHC_CNightPoint6TriggerMorning          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6TriggerMorning)) & SHC_CNightPoint6TriggerMorningMask) >> SHC_CNightPoint6TriggerMorningShift)
+// Auslöser
+#define ParamSHC_CNightPoint6TriggerMorningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6TriggerMorningNoB)) & SHC_CNightPoint6TriggerMorningNoBMask) >> SHC_CNightPoint6TriggerMorningNoBShift)
+// Bedingung
+#define ParamSHC_CNightPoint6Condition               ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Condition)) & SHC_CNightPoint6ConditionMask) >> SHC_CNightPoint6ConditionShift)
+// Helligkeit
+#define ParamSHC_CNightPoint6LinkEvening             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6LinkEvening)) & SHC_CNightPoint6LinkEveningMask) >> SHC_CNightPoint6LinkEveningShift)
+// Helligkeit
+#define ParamSHC_CNightPoint6LinkMorning             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6LinkMorning)) & SHC_CNightPoint6LinkMorningMask) >> SHC_CNightPoint6LinkMorningShift)
+// Uhrzeit
+#define ParamSHC_CNightPoint6Time                    (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint6Time)))
+// Zeitversatz
+#define ParamSHC_CNightPoint6TimeOffset              (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint6TimeOffset)))
+// Höhenwinkel
+#define ParamSHC_CNightPoint6Elevation               (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint6Elevation)))
+// Helligkeit
+#define ParamSHC_CNightPoint6Lux                     (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint6Lux)))
+// Lux
+#define ParamSHC_CNightPoint6AndLux                  (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint6AndLux)))
+// Zeit
+#define ParamSHC_CNightPoint6ConditionTime           (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint6ConditionTime)))
+// Mo
+#define ParamSHC_CNightPoint7Mon                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Mon)) & SHC_CNightPoint7MonMask))
+// Di
+#define ParamSHC_CNightPoint7Tue                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Tue)) & SHC_CNightPoint7TueMask))
+// Mi
+#define ParamSHC_CNightPoint7Wed                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Wed)) & SHC_CNightPoint7WedMask))
+// Do
+#define ParamSHC_CNightPoint7Thu                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Thu)) & SHC_CNightPoint7ThuMask))
+// Fr
+#define ParamSHC_CNightPoint7Fri                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Fri)) & SHC_CNightPoint7FriMask))
+// Sa
+#define ParamSHC_CNightPoint7Sat                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Sat)) & SHC_CNightPoint7SatMask))
+// So
+#define ParamSHC_CNightPoint7Sun                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Sun)) & SHC_CNightPoint7SunMask))
+// Stufe
+#define ParamSHC_CNightPoint7Stage                   ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Stage)) & SHC_CNightPoint7StageMask) >> SHC_CNightPoint7StageShift)
+// Auslöser
+#define ParamSHC_CNightPoint7TriggerEvening          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7TriggerEvening)) & SHC_CNightPoint7TriggerEveningMask) >> SHC_CNightPoint7TriggerEveningShift)
+// Auslöser
+#define ParamSHC_CNightPoint7TriggerEveningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7TriggerEveningNoB)) & SHC_CNightPoint7TriggerEveningNoBMask) >> SHC_CNightPoint7TriggerEveningNoBShift)
+// Auslöser
+#define ParamSHC_CNightPoint7TriggerMorning          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7TriggerMorning)) & SHC_CNightPoint7TriggerMorningMask) >> SHC_CNightPoint7TriggerMorningShift)
+// Auslöser
+#define ParamSHC_CNightPoint7TriggerMorningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7TriggerMorningNoB)) & SHC_CNightPoint7TriggerMorningNoBMask) >> SHC_CNightPoint7TriggerMorningNoBShift)
+// Bedingung
+#define ParamSHC_CNightPoint7Condition               ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Condition)) & SHC_CNightPoint7ConditionMask) >> SHC_CNightPoint7ConditionShift)
+// Helligkeit
+#define ParamSHC_CNightPoint7LinkEvening             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7LinkEvening)) & SHC_CNightPoint7LinkEveningMask) >> SHC_CNightPoint7LinkEveningShift)
+// Helligkeit
+#define ParamSHC_CNightPoint7LinkMorning             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7LinkMorning)) & SHC_CNightPoint7LinkMorningMask) >> SHC_CNightPoint7LinkMorningShift)
+// Uhrzeit
+#define ParamSHC_CNightPoint7Time                    (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint7Time)))
+// Zeitversatz
+#define ParamSHC_CNightPoint7TimeOffset              (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint7TimeOffset)))
+// Höhenwinkel
+#define ParamSHC_CNightPoint7Elevation               (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint7Elevation)))
+// Helligkeit
+#define ParamSHC_CNightPoint7Lux                     (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint7Lux)))
+// Lux
+#define ParamSHC_CNightPoint7AndLux                  (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint7AndLux)))
+// Zeit
+#define ParamSHC_CNightPoint7ConditionTime           (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint7ConditionTime)))
+// Mo
+#define ParamSHC_CNightPoint8Mon                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Mon)) & SHC_CNightPoint8MonMask))
+// Di
+#define ParamSHC_CNightPoint8Tue                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Tue)) & SHC_CNightPoint8TueMask))
+// Mi
+#define ParamSHC_CNightPoint8Wed                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Wed)) & SHC_CNightPoint8WedMask))
+// Do
+#define ParamSHC_CNightPoint8Thu                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Thu)) & SHC_CNightPoint8ThuMask))
+// Fr
+#define ParamSHC_CNightPoint8Fri                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Fri)) & SHC_CNightPoint8FriMask))
+// Sa
+#define ParamSHC_CNightPoint8Sat                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Sat)) & SHC_CNightPoint8SatMask))
+// So
+#define ParamSHC_CNightPoint8Sun                     ((bool)(knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Sun)) & SHC_CNightPoint8SunMask))
+// Stufe
+#define ParamSHC_CNightPoint8Stage                   ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Stage)) & SHC_CNightPoint8StageMask) >> SHC_CNightPoint8StageShift)
+// Auslöser
+#define ParamSHC_CNightPoint8TriggerEvening          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8TriggerEvening)) & SHC_CNightPoint8TriggerEveningMask) >> SHC_CNightPoint8TriggerEveningShift)
+// Auslöser
+#define ParamSHC_CNightPoint8TriggerEveningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8TriggerEveningNoB)) & SHC_CNightPoint8TriggerEveningNoBMask) >> SHC_CNightPoint8TriggerEveningNoBShift)
+// Auslöser
+#define ParamSHC_CNightPoint8TriggerMorning          ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8TriggerMorning)) & SHC_CNightPoint8TriggerMorningMask) >> SHC_CNightPoint8TriggerMorningShift)
+// Auslöser
+#define ParamSHC_CNightPoint8TriggerMorningNoB       ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8TriggerMorningNoB)) & SHC_CNightPoint8TriggerMorningNoBMask) >> SHC_CNightPoint8TriggerMorningNoBShift)
+// Bedingung
+#define ParamSHC_CNightPoint8Condition               ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Condition)) & SHC_CNightPoint8ConditionMask) >> SHC_CNightPoint8ConditionShift)
+// Helligkeit
+#define ParamSHC_CNightPoint8LinkEvening             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8LinkEvening)) & SHC_CNightPoint8LinkEveningMask) >> SHC_CNightPoint8LinkEveningShift)
+// Helligkeit
+#define ParamSHC_CNightPoint8LinkMorning             ((knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8LinkMorning)) & SHC_CNightPoint8LinkMorningMask) >> SHC_CNightPoint8LinkMorningShift)
+// Uhrzeit
+#define ParamSHC_CNightPoint8Time                    (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint8Time)))
+// Zeitversatz
+#define ParamSHC_CNightPoint8TimeOffset              (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint8TimeOffset)))
+// Höhenwinkel
+#define ParamSHC_CNightPoint8Elevation               (knx.paramByte(SHC_ParamCalcIndex(SHC_CNightPoint8Elevation)))
+// Helligkeit
+#define ParamSHC_CNightPoint8Lux                     (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint8Lux)))
+// Lux
+#define ParamSHC_CNightPoint8AndLux                  (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint8AndLux)))
+// Zeit
+#define ParamSHC_CNightPoint8ConditionTime           (knx.paramWord(SHC_ParamCalcIndex(SHC_CNightPoint8ConditionTime)))
 // Position anfahren
 #define ParamSHC_CWindowOpenPositionControl1         ((knx.paramByte(SHC_ParamCalcIndex(SHC_CWindowOpenPositionControl1)) & SHC_CWindowOpenPositionControl1Mask) >> SHC_CWindowOpenPositionControl1Shift)
 // Lamellen öffnen
@@ -2112,7 +2945,7 @@
 
 // Communication objects per channel (multiple occurrence)
 #define SHC_KoBlockOffset 420
-#define SHC_KoBlockSize 53
+#define SHC_KoBlockSize 54
 
 #define SHC_KoCalcNumber(index) (index + SHC_KoBlockOffset + _channelIndex * SHC_KoBlockSize)
 #define SHC_KoCalcIndex(number) ((number >= SHC_KoCalcNumber(0) && number < SHC_KoCalcNumber(SHC_KoBlockSize)) ? (number - SHC_KoBlockOffset) % SHC_KoBlockSize : -1)
@@ -2147,6 +2980,7 @@
 #define SHC_KoCRoomTemp 26
 #define SHC_KoCShadingReadyUser 27
 #define SHC_KoCScene 52
+#define SHC_KoCNightStage 53
 #define SHC_KoCWindowOpenModeActive1 28
 #define SHC_KoCWindowOpenOpened1 29
 #define SHC_KoCWindowOpenLock1 30
@@ -2231,6 +3065,8 @@
 // 
 #define KoSHC_CScene                              (knx.getGroupObject(SHC_KoCalcNumber(SHC_KoCScene)))
 // 
+#define KoSHC_CNightStage                         (knx.getGroupObject(SHC_KoCalcNumber(SHC_KoCNightStage)))
+// 
 #define KoSHC_CWindowOpenModeActive1              (knx.getGroupObject(SHC_KoCalcNumber(SHC_KoCWindowOpenModeActive1)))
 // 
 #define KoSHC_CWindowOpenOpened1                  (knx.getGroupObject(SHC_KoCalcNumber(SHC_KoCWindowOpenOpened1)))
@@ -2279,272 +3115,272 @@
 // 
 #define KoSHC_CShading2Ready                      (knx.getGroupObject(SHC_KoCalcNumber(SHC_KoCShading2Ready)))
 
-#define LOG_VisibleChannels                     9137      // uint8_t
-#define LOG_VacationKo                          9138      // 1 Bit, Bit 7
+#define LOG_VisibleChannels                     12945      // uint8_t
+#define LOG_VacationKo                          12946      // 1 Bit, Bit 7
 #define     LOG_VacationKoMask 0x80
 #define     LOG_VacationKoShift 7
-#define LOG_HolidayKo                           9138      // 1 Bit, Bit 6
+#define LOG_HolidayKo                           12946      // 1 Bit, Bit 6
 #define     LOG_HolidayKoMask 0x40
 #define     LOG_HolidayKoShift 6
-#define LOG_VacationRead                        9138      // 1 Bit, Bit 5
+#define LOG_VacationRead                        12946      // 1 Bit, Bit 5
 #define     LOG_VacationReadMask 0x20
 #define     LOG_VacationReadShift 5
-#define LOG_HolidaySend                         9138      // 1 Bit, Bit 4
+#define LOG_HolidaySend                         12946      // 1 Bit, Bit 4
 #define     LOG_HolidaySendMask 0x10
 #define     LOG_HolidaySendShift 4
-#define LOG_Neujahr                             9139      // 1 Bit, Bit 7
+#define LOG_Neujahr                             12947      // 1 Bit, Bit 7
 #define     LOG_NeujahrMask 0x80
 #define     LOG_NeujahrShift 7
-#define LOG_DreiKoenige                         9139      // 1 Bit, Bit 6
+#define LOG_DreiKoenige                         12947      // 1 Bit, Bit 6
 #define     LOG_DreiKoenigeMask 0x40
 #define     LOG_DreiKoenigeShift 6
-#define LOG_Weiberfastnacht                     9139      // 1 Bit, Bit 5
+#define LOG_Weiberfastnacht                     12947      // 1 Bit, Bit 5
 #define     LOG_WeiberfastnachtMask 0x20
 #define     LOG_WeiberfastnachtShift 5
-#define LOG_Rosenmontag                         9139      // 1 Bit, Bit 4
+#define LOG_Rosenmontag                         12947      // 1 Bit, Bit 4
 #define     LOG_RosenmontagMask 0x10
 #define     LOG_RosenmontagShift 4
-#define LOG_Fastnachtsdienstag                  9139      // 1 Bit, Bit 3
+#define LOG_Fastnachtsdienstag                  12947      // 1 Bit, Bit 3
 #define     LOG_FastnachtsdienstagMask 0x08
 #define     LOG_FastnachtsdienstagShift 3
-#define LOG_Aschermittwoch                      9139      // 1 Bit, Bit 2
+#define LOG_Aschermittwoch                      12947      // 1 Bit, Bit 2
 #define     LOG_AschermittwochMask 0x04
 #define     LOG_AschermittwochShift 2
-#define LOG_Frauentag                           9139      // 1 Bit, Bit 1
+#define LOG_Frauentag                           12947      // 1 Bit, Bit 1
 #define     LOG_FrauentagMask 0x02
 #define     LOG_FrauentagShift 1
-#define LOG_Gruendonnerstag                     9139      // 1 Bit, Bit 0
+#define LOG_Gruendonnerstag                     12947      // 1 Bit, Bit 0
 #define     LOG_GruendonnerstagMask 0x01
 #define     LOG_GruendonnerstagShift 0
-#define LOG_Karfreitag                          9140      // 1 Bit, Bit 7
+#define LOG_Karfreitag                          12948      // 1 Bit, Bit 7
 #define     LOG_KarfreitagMask 0x80
 #define     LOG_KarfreitagShift 7
-#define LOG_Ostersonntag                        9140      // 1 Bit, Bit 6
+#define LOG_Ostersonntag                        12948      // 1 Bit, Bit 6
 #define     LOG_OstersonntagMask 0x40
 #define     LOG_OstersonntagShift 6
-#define LOG_Ostermontag                         9140      // 1 Bit, Bit 5
+#define LOG_Ostermontag                         12948      // 1 Bit, Bit 5
 #define     LOG_OstermontagMask 0x20
 #define     LOG_OstermontagShift 5
-#define LOG_TagDerArbeit                        9140      // 1 Bit, Bit 4
+#define LOG_TagDerArbeit                        12948      // 1 Bit, Bit 4
 #define     LOG_TagDerArbeitMask 0x10
 #define     LOG_TagDerArbeitShift 4
-#define LOG_Himmelfahrt                         9140      // 1 Bit, Bit 3
+#define LOG_Himmelfahrt                         12948      // 1 Bit, Bit 3
 #define     LOG_HimmelfahrtMask 0x08
 #define     LOG_HimmelfahrtShift 3
-#define LOG_Pfingstsonntag                      9140      // 1 Bit, Bit 2
+#define LOG_Pfingstsonntag                      12948      // 1 Bit, Bit 2
 #define     LOG_PfingstsonntagMask 0x04
 #define     LOG_PfingstsonntagShift 2
-#define LOG_Pfingstmontag                       9140      // 1 Bit, Bit 1
+#define LOG_Pfingstmontag                       12948      // 1 Bit, Bit 1
 #define     LOG_PfingstmontagMask 0x02
 #define     LOG_PfingstmontagShift 1
-#define LOG_Fronleichnam                        9140      // 1 Bit, Bit 0
+#define LOG_Fronleichnam                        12948      // 1 Bit, Bit 0
 #define     LOG_FronleichnamMask 0x01
 #define     LOG_FronleichnamShift 0
-#define LOG_Friedensfest                        9141      // 1 Bit, Bit 7
+#define LOG_Friedensfest                        12949      // 1 Bit, Bit 7
 #define     LOG_FriedensfestMask 0x80
 #define     LOG_FriedensfestShift 7
-#define LOG_MariaHimmelfahrt                    9141      // 1 Bit, Bit 6
+#define LOG_MariaHimmelfahrt                    12949      // 1 Bit, Bit 6
 #define     LOG_MariaHimmelfahrtMask 0x40
 #define     LOG_MariaHimmelfahrtShift 6
-#define LOG_DeutscheEinheit                     9141      // 1 Bit, Bit 5
+#define LOG_DeutscheEinheit                     12949      // 1 Bit, Bit 5
 #define     LOG_DeutscheEinheitMask 0x20
 #define     LOG_DeutscheEinheitShift 5
-#define LOG_Reformationstag                     9141      // 1 Bit, Bit 4
+#define LOG_Reformationstag                     12949      // 1 Bit, Bit 4
 #define     LOG_ReformationstagMask 0x10
 #define     LOG_ReformationstagShift 4
-#define LOG_Allerheiligen                       9141      // 1 Bit, Bit 3
+#define LOG_Allerheiligen                       12949      // 1 Bit, Bit 3
 #define     LOG_AllerheiligenMask 0x08
 #define     LOG_AllerheiligenShift 3
-#define LOG_BussBettag                          9141      // 1 Bit, Bit 2
+#define LOG_BussBettag                          12949      // 1 Bit, Bit 2
 #define     LOG_BussBettagMask 0x04
 #define     LOG_BussBettagShift 2
-#define LOG_Advent1                             9141      // 1 Bit, Bit 1
+#define LOG_Advent1                             12949      // 1 Bit, Bit 1
 #define     LOG_Advent1Mask 0x02
 #define     LOG_Advent1Shift 1
-#define LOG_Advent2                             9141      // 1 Bit, Bit 0
+#define LOG_Advent2                             12949      // 1 Bit, Bit 0
 #define     LOG_Advent2Mask 0x01
 #define     LOG_Advent2Shift 0
-#define LOG_Advent3                             9142      // 1 Bit, Bit 7
+#define LOG_Advent3                             12950      // 1 Bit, Bit 7
 #define     LOG_Advent3Mask 0x80
 #define     LOG_Advent3Shift 7
-#define LOG_Advent4                             9142      // 1 Bit, Bit 6
+#define LOG_Advent4                             12950      // 1 Bit, Bit 6
 #define     LOG_Advent4Mask 0x40
 #define     LOG_Advent4Shift 6
-#define LOG_Heiligabend                         9142      // 1 Bit, Bit 5
+#define LOG_Heiligabend                         12950      // 1 Bit, Bit 5
 #define     LOG_HeiligabendMask 0x20
 #define     LOG_HeiligabendShift 5
-#define LOG_Weihnachtstag1                      9142      // 1 Bit, Bit 4
+#define LOG_Weihnachtstag1                      12950      // 1 Bit, Bit 4
 #define     LOG_Weihnachtstag1Mask 0x10
 #define     LOG_Weihnachtstag1Shift 4
-#define LOG_Weihnachtstag2                      9142      // 1 Bit, Bit 3
+#define LOG_Weihnachtstag2                      12950      // 1 Bit, Bit 3
 #define     LOG_Weihnachtstag2Mask 0x08
 #define     LOG_Weihnachtstag2Shift 3
-#define LOG_Silvester                           9142      // 1 Bit, Bit 2
+#define LOG_Silvester                           12950      // 1 Bit, Bit 2
 #define     LOG_SilvesterMask 0x04
 #define     LOG_SilvesterShift 2
-#define LOG_Nationalfeiertag                    9142      // 1 Bit, Bit 1
+#define LOG_Nationalfeiertag                    12950      // 1 Bit, Bit 1
 #define     LOG_NationalfeiertagMask 0x02
 #define     LOG_NationalfeiertagShift 1
-#define LOG_MariaEmpfaengnis                    9142      // 1 Bit, Bit 0
+#define LOG_MariaEmpfaengnis                    12950      // 1 Bit, Bit 0
 #define     LOG_MariaEmpfaengnisMask 0x01
 #define     LOG_MariaEmpfaengnisShift 0
-#define LOG_NationalfeiertagSchweiz             9143      // 1 Bit, Bit 7
+#define LOG_NationalfeiertagSchweiz             12951      // 1 Bit, Bit 7
 #define     LOG_NationalfeiertagSchweizMask 0x80
 #define     LOG_NationalfeiertagSchweizShift 7
-#define LOG_Totensonntag                        9143      // 1 Bit, Bit 6
+#define LOG_Totensonntag                        12951      // 1 Bit, Bit 6
 #define     LOG_TotensonntagMask 0x40
 #define     LOG_TotensonntagShift 6
-#define LOG_Weltkindertag                       9143      // 1 Bit, Bit 5
+#define LOG_Weltkindertag                       12951      // 1 Bit, Bit 5
 #define     LOG_WeltkindertagMask 0x20
 #define     LOG_WeltkindertagShift 5
-#define LOG_UserFormula1                        9144      // char*, 99 Byte
+#define LOG_UserFormula1                        12952      // char*, 99 Byte
 #define     LOG_UserFormula1Length 99
-#define LOG_UserFormula1Active                  9243      // 1 Bit, Bit 7
+#define LOG_UserFormula1Active                  13051      // 1 Bit, Bit 7
 #define     LOG_UserFormula1ActiveMask 0x80
 #define     LOG_UserFormula1ActiveShift 7
-#define LOG_UserFormula2                        9244      // char*, 99 Byte
+#define LOG_UserFormula2                        13052      // char*, 99 Byte
 #define     LOG_UserFormula2Length 99
-#define LOG_UserFormula2Active                  9343      // 1 Bit, Bit 7
+#define LOG_UserFormula2Active                  13151      // 1 Bit, Bit 7
 #define     LOG_UserFormula2ActiveMask 0x80
 #define     LOG_UserFormula2ActiveShift 7
-#define LOG_UserFormula3                        9344      // char*, 99 Byte
+#define LOG_UserFormula3                        13152      // char*, 99 Byte
 #define     LOG_UserFormula3Length 99
-#define LOG_UserFormula3Active                  9443      // 1 Bit, Bit 7
+#define LOG_UserFormula3Active                  13251      // 1 Bit, Bit 7
 #define     LOG_UserFormula3ActiveMask 0x80
 #define     LOG_UserFormula3ActiveShift 7
-#define LOG_UserFormula4                        9444      // char*, 99 Byte
+#define LOG_UserFormula4                        13252      // char*, 99 Byte
 #define     LOG_UserFormula4Length 99
-#define LOG_UserFormula4Active                  9543      // 1 Bit, Bit 7
+#define LOG_UserFormula4Active                  13351      // 1 Bit, Bit 7
 #define     LOG_UserFormula4ActiveMask 0x80
 #define     LOG_UserFormula4ActiveShift 7
-#define LOG_UserFormula5                        9544      // char*, 99 Byte
+#define LOG_UserFormula5                        13352      // char*, 99 Byte
 #define     LOG_UserFormula5Length 99
-#define LOG_UserFormula5Active                  9643      // 1 Bit, Bit 7
+#define LOG_UserFormula5Active                  13451      // 1 Bit, Bit 7
 #define     LOG_UserFormula5ActiveMask 0x80
 #define     LOG_UserFormula5ActiveShift 7
-#define LOG_UserFormula6                        9644      // char*, 99 Byte
+#define LOG_UserFormula6                        13452      // char*, 99 Byte
 #define     LOG_UserFormula6Length 99
-#define LOG_UserFormula6Active                  9743      // 1 Bit, Bit 7
+#define LOG_UserFormula6Active                  13551      // 1 Bit, Bit 7
 #define     LOG_UserFormula6ActiveMask 0x80
 #define     LOG_UserFormula6ActiveShift 7
-#define LOG_UserFormula7                        9744      // char*, 99 Byte
+#define LOG_UserFormula7                        13552      // char*, 99 Byte
 #define     LOG_UserFormula7Length 99
-#define LOG_UserFormula7Active                  9843      // 1 Bit, Bit 7
+#define LOG_UserFormula7Active                  13651      // 1 Bit, Bit 7
 #define     LOG_UserFormula7ActiveMask 0x80
 #define     LOG_UserFormula7ActiveShift 7
-#define LOG_UserFormula8                        9844      // char*, 99 Byte
+#define LOG_UserFormula8                        13652      // char*, 99 Byte
 #define     LOG_UserFormula8Length 99
-#define LOG_UserFormula8Active                  9943      // 1 Bit, Bit 7
+#define LOG_UserFormula8Active                  13751      // 1 Bit, Bit 7
 #define     LOG_UserFormula8ActiveMask 0x80
 #define     LOG_UserFormula8ActiveShift 7
-#define LOG_UserFormula9                        9944      // char*, 99 Byte
+#define LOG_UserFormula9                        13752      // char*, 99 Byte
 #define     LOG_UserFormula9Length 99
-#define LOG_UserFormula9Active                  10043      // 1 Bit, Bit 7
+#define LOG_UserFormula9Active                  13851      // 1 Bit, Bit 7
 #define     LOG_UserFormula9ActiveMask 0x80
 #define     LOG_UserFormula9ActiveShift 7
-#define LOG_UserFormula10                       10044      // char*, 99 Byte
+#define LOG_UserFormula10                       13852      // char*, 99 Byte
 #define     LOG_UserFormula10Length 99
-#define LOG_UserFormula10Active                 10143      // 1 Bit, Bit 7
+#define LOG_UserFormula10Active                 13951      // 1 Bit, Bit 7
 #define     LOG_UserFormula10ActiveMask 0x80
 #define     LOG_UserFormula10ActiveShift 7
-#define LOG_UserFormula11                       10144      // char*, 99 Byte
+#define LOG_UserFormula11                       13952      // char*, 99 Byte
 #define     LOG_UserFormula11Length 99
-#define LOG_UserFormula11Active                 10243      // 1 Bit, Bit 7
+#define LOG_UserFormula11Active                 14051      // 1 Bit, Bit 7
 #define     LOG_UserFormula11ActiveMask 0x80
 #define     LOG_UserFormula11ActiveShift 7
-#define LOG_UserFormula12                       10244      // char*, 99 Byte
+#define LOG_UserFormula12                       14052      // char*, 99 Byte
 #define     LOG_UserFormula12Length 99
-#define LOG_UserFormula12Active                 10343      // 1 Bit, Bit 7
+#define LOG_UserFormula12Active                 14151      // 1 Bit, Bit 7
 #define     LOG_UserFormula12ActiveMask 0x80
 #define     LOG_UserFormula12ActiveShift 7
-#define LOG_UserFormula13                       10344      // char*, 99 Byte
+#define LOG_UserFormula13                       14152      // char*, 99 Byte
 #define     LOG_UserFormula13Length 99
-#define LOG_UserFormula13Active                 10443      // 1 Bit, Bit 7
+#define LOG_UserFormula13Active                 14251      // 1 Bit, Bit 7
 #define     LOG_UserFormula13ActiveMask 0x80
 #define     LOG_UserFormula13ActiveShift 7
-#define LOG_UserFormula14                       10444      // char*, 99 Byte
+#define LOG_UserFormula14                       14252      // char*, 99 Byte
 #define     LOG_UserFormula14Length 99
-#define LOG_UserFormula14Active                 10543      // 1 Bit, Bit 7
+#define LOG_UserFormula14Active                 14351      // 1 Bit, Bit 7
 #define     LOG_UserFormula14ActiveMask 0x80
 #define     LOG_UserFormula14ActiveShift 7
-#define LOG_UserFormula15                       10544      // char*, 99 Byte
+#define LOG_UserFormula15                       14352      // char*, 99 Byte
 #define     LOG_UserFormula15Length 99
-#define LOG_UserFormula15Active                 10643      // 1 Bit, Bit 7
+#define LOG_UserFormula15Active                 14451      // 1 Bit, Bit 7
 #define     LOG_UserFormula15ActiveMask 0x80
 #define     LOG_UserFormula15ActiveShift 7
-#define LOG_UserFormula16                       10644      // char*, 99 Byte
+#define LOG_UserFormula16                       14452      // char*, 99 Byte
 #define     LOG_UserFormula16Length 99
-#define LOG_UserFormula16Active                 10743      // 1 Bit, Bit 7
+#define LOG_UserFormula16Active                 14551      // 1 Bit, Bit 7
 #define     LOG_UserFormula16ActiveMask 0x80
 #define     LOG_UserFormula16ActiveShift 7
-#define LOG_UserFormula17                       10744      // char*, 99 Byte
+#define LOG_UserFormula17                       14552      // char*, 99 Byte
 #define     LOG_UserFormula17Length 99
-#define LOG_UserFormula17Active                 10843      // 1 Bit, Bit 7
+#define LOG_UserFormula17Active                 14651      // 1 Bit, Bit 7
 #define     LOG_UserFormula17ActiveMask 0x80
 #define     LOG_UserFormula17ActiveShift 7
-#define LOG_UserFormula18                       10844      // char*, 99 Byte
+#define LOG_UserFormula18                       14652      // char*, 99 Byte
 #define     LOG_UserFormula18Length 99
-#define LOG_UserFormula18Active                 10943      // 1 Bit, Bit 7
+#define LOG_UserFormula18Active                 14751      // 1 Bit, Bit 7
 #define     LOG_UserFormula18ActiveMask 0x80
 #define     LOG_UserFormula18ActiveShift 7
-#define LOG_UserFormula19                       10944      // char*, 99 Byte
+#define LOG_UserFormula19                       14752      // char*, 99 Byte
 #define     LOG_UserFormula19Length 99
-#define LOG_UserFormula19Active                 11043      // 1 Bit, Bit 7
+#define LOG_UserFormula19Active                 14851      // 1 Bit, Bit 7
 #define     LOG_UserFormula19ActiveMask 0x80
 #define     LOG_UserFormula19ActiveShift 7
-#define LOG_UserFormula20                       11044      // char*, 99 Byte
+#define LOG_UserFormula20                       14852      // char*, 99 Byte
 #define     LOG_UserFormula20Length 99
-#define LOG_UserFormula20Active                 11143      // 1 Bit, Bit 7
+#define LOG_UserFormula20Active                 14951      // 1 Bit, Bit 7
 #define     LOG_UserFormula20ActiveMask 0x80
 #define     LOG_UserFormula20ActiveShift 7
-#define LOG_UserFormula21                       11144      // char*, 99 Byte
+#define LOG_UserFormula21                       14952      // char*, 99 Byte
 #define     LOG_UserFormula21Length 99
-#define LOG_UserFormula21Active                 11243      // 1 Bit, Bit 7
+#define LOG_UserFormula21Active                 15051      // 1 Bit, Bit 7
 #define     LOG_UserFormula21ActiveMask 0x80
 #define     LOG_UserFormula21ActiveShift 7
-#define LOG_UserFormula22                       11244      // char*, 99 Byte
+#define LOG_UserFormula22                       15052      // char*, 99 Byte
 #define     LOG_UserFormula22Length 99
-#define LOG_UserFormula22Active                 11343      // 1 Bit, Bit 7
+#define LOG_UserFormula22Active                 15151      // 1 Bit, Bit 7
 #define     LOG_UserFormula22ActiveMask 0x80
 #define     LOG_UserFormula22ActiveShift 7
-#define LOG_UserFormula23                       11344      // char*, 99 Byte
+#define LOG_UserFormula23                       15152      // char*, 99 Byte
 #define     LOG_UserFormula23Length 99
-#define LOG_UserFormula23Active                 11443      // 1 Bit, Bit 7
+#define LOG_UserFormula23Active                 15251      // 1 Bit, Bit 7
 #define     LOG_UserFormula23ActiveMask 0x80
 #define     LOG_UserFormula23ActiveShift 7
-#define LOG_UserFormula24                       11444      // char*, 99 Byte
+#define LOG_UserFormula24                       15252      // char*, 99 Byte
 #define     LOG_UserFormula24Length 99
-#define LOG_UserFormula24Active                 11543      // 1 Bit, Bit 7
+#define LOG_UserFormula24Active                 15351      // 1 Bit, Bit 7
 #define     LOG_UserFormula24ActiveMask 0x80
 #define     LOG_UserFormula24ActiveShift 7
-#define LOG_UserFormula25                       11544      // char*, 99 Byte
+#define LOG_UserFormula25                       15352      // char*, 99 Byte
 #define     LOG_UserFormula25Length 99
-#define LOG_UserFormula25Active                 11643      // 1 Bit, Bit 7
+#define LOG_UserFormula25Active                 15451      // 1 Bit, Bit 7
 #define     LOG_UserFormula25ActiveMask 0x80
 #define     LOG_UserFormula25ActiveShift 7
-#define LOG_UserFormula26                       11644      // char*, 99 Byte
+#define LOG_UserFormula26                       15452      // char*, 99 Byte
 #define     LOG_UserFormula26Length 99
-#define LOG_UserFormula26Active                 11743      // 1 Bit, Bit 7
+#define LOG_UserFormula26Active                 15551      // 1 Bit, Bit 7
 #define     LOG_UserFormula26ActiveMask 0x80
 #define     LOG_UserFormula26ActiveShift 7
-#define LOG_UserFormula27                       11744      // char*, 99 Byte
+#define LOG_UserFormula27                       15552      // char*, 99 Byte
 #define     LOG_UserFormula27Length 99
-#define LOG_UserFormula27Active                 11843      // 1 Bit, Bit 7
+#define LOG_UserFormula27Active                 15651      // 1 Bit, Bit 7
 #define     LOG_UserFormula27ActiveMask 0x80
 #define     LOG_UserFormula27ActiveShift 7
-#define LOG_UserFormula28                       11844      // char*, 99 Byte
+#define LOG_UserFormula28                       15652      // char*, 99 Byte
 #define     LOG_UserFormula28Length 99
-#define LOG_UserFormula28Active                 11943      // 1 Bit, Bit 7
+#define LOG_UserFormula28Active                 15751      // 1 Bit, Bit 7
 #define     LOG_UserFormula28ActiveMask 0x80
 #define     LOG_UserFormula28ActiveShift 7
-#define LOG_UserFormula29                       11944      // char*, 99 Byte
+#define LOG_UserFormula29                       15752      // char*, 99 Byte
 #define     LOG_UserFormula29Length 99
-#define LOG_UserFormula29Active                 12043      // 1 Bit, Bit 7
+#define LOG_UserFormula29Active                 15851      // 1 Bit, Bit 7
 #define     LOG_UserFormula29ActiveMask 0x80
 #define     LOG_UserFormula29ActiveShift 7
-#define LOG_UserFormula30                       12044      // char*, 99 Byte
+#define LOG_UserFormula30                       15852      // char*, 99 Byte
 #define     LOG_UserFormula30Length 99
-#define LOG_UserFormula30Active                 12143      // 1 Bit, Bit 7
+#define LOG_UserFormula30Active                 15951      // 1 Bit, Bit 7
 #define     LOG_UserFormula30ActiveMask 0x80
 #define     LOG_UserFormula30ActiveShift 7
 
@@ -2793,7 +3629,7 @@
 #define LOG_ChannelCount 50
 
 // Parameter per channel
-#define LOG_ParamBlockOffset 12144
+#define LOG_ParamBlockOffset 15952
 #define LOG_ParamBlockSize 89
 #define LOG_ParamCalcIndex(index) (index + LOG_ParamBlockOffset + _channelIndex * LOG_ParamBlockSize)
 
@@ -4698,15 +5534,10 @@
 // Ausgang
 #define KoLOG_KOfO                                (knx.getGroupObject(LOG_KoCalcNumber(LOG_KoKOfO)))
 
-#define FCB_VisibleChannels                     16594      // uint8_t
-
-// Verfügbare Kanäle
-#define ParamFCB_VisibleChannels                     (knx.paramByte(FCB_VisibleChannels))
-
 #define FCB_ChannelCount 15
 
 // Parameter per channel
-#define FCB_ParamBlockOffset 16595
+#define FCB_ParamBlockOffset 20402
 #define FCB_ParamBlockSize 81
 #define FCB_ParamCalcIndex(index) (index + FCB_ParamBlockOffset + _channelIndex * FCB_ParamBlockSize)
 
@@ -5220,7 +6051,7 @@
 
 // Type
 #define ParamFCB_CHChannelType                       (knx.paramByte(FCB_ParamCalcIndex(FCB_CHChannelType)))
-// Kanal deaktivieren (zu Testzwecken)
+// Suspendiert
 #define ParamFCB_CHChannelDisabled                   ((bool)(knx.paramByte(FCB_ParamCalcIndex(FCB_CHChannelDisabled)) & FCB_CHChannelDisabledMask))
 // Eingang 1
 #define ParamFCB_CHLogicKo0D                         ((knx.paramByte(FCB_ParamCalcIndex(FCB_CHLogicKo0D)) & FCB_CHLogicKo0DMask) >> FCB_CHLogicKo0DShift)

@@ -1,6 +1,6 @@
 ﻿´╗┐{
     "name": "OAM-ShutterController",
-    "version": "1.9.1",
+    "version": "1.10.0",
     "description": "OpenKNX shutter controller application",
     "homepage": "https://openknx.de",
     "authors": {
